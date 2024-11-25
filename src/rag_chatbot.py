@@ -4,7 +4,8 @@ import shutil
 from dotenv import load_dotenv
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
+#from langchain_chroma import Chroma
+from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -14,12 +15,21 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import MessagesPlaceholder
 from src.googledrive_download_folder import *
+from pinecone import Pinecone
+from uuid import uuid4
 
 
 def load_env_variables(env_file_path):
     """Load environment variables from the specified file."""
     load_dotenv(env_file_path)
-    return os.getenv("OPENAI_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    os.environ['OPENAI_API_KEY'] = openai_api_key
+
+    pinecone_api_key = os.getenv("PINECONE_API_KEY")
+    os.environ['PINECONE_API_KEY'] = pinecone_api_key
+
+    return openai_api_key, pinecone_api_key
+
 
 def download_files_from_google_drive(google_drive_json, destination_folder="tmp"):
     """Download files from Google Drive based on the provided JSON."""
@@ -49,24 +59,56 @@ def load_html_documents(file_paths):
         docs.extend(loader.load())
     return docs
 
-def build_vectorstore(docs, persist_directory, model="text-embedding-3-small"):
-    """Build or load a vectorstore from documents."""
+# def build_vectorstore(docs, persist_directory, model="text-embedding-3-small"):
+#     """Build or load a vectorstore from documents."""
+
+#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True)
+#     all_splits = text_splitter.split_documents(docs)
+
+#     # Save and load vectorstore
+#     Chroma.from_documents(documents=all_splits, embedding = OpenAIEmbeddings(model=model), persist_directory=persist_directory)
+    
+#     # Delete /tmp folder
+#     shutil.rmtree("tmp")
+    
+#     return 
+
+# def get_vectorstore(persist_directory, model="text-embedding-3-small"):
+#     """Load a vectorstore from the specified directory."""
+
+#     return Chroma(persist_directory=persist_directory, embedding_function = OpenAIEmbeddings(model=model))
+
+def build_vectorstore(docs, index_name, pinecone_api_key, model="text-embedding-3-small"):
+    """Build a Pinecone vectorstore from documents."""
 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True)
     all_splits = text_splitter.split_documents(docs)
 
-    # Save and load vectorstore
-    Chroma.from_documents(documents=all_splits, embedding = OpenAIEmbeddings(model=model), persist_directory=persist_directory)
+    embedding_model = OpenAIEmbeddings(model=model)
     
+    pc = Pinecone(api_key=pinecone_api_key)
+    index = pc.Index(index_name)
+    vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
+
+    uuids = [str(uuid4()) for _ in range(len(all_splits))]
+    vector_store.add_documents(documents=all_splits, ids=uuids)
+
     # Delete /tmp folder
     shutil.rmtree("tmp")
+
+    return vector_store
+
+def get_vectorstore(index_name, pinecone_api_key, model="text-embedding-3-small"):
+    """Load a Pinecone vectorstore from the specified index name."""
+
+    embedding_model = OpenAIEmbeddings(model=model)
     
-    return 
+    pc = Pinecone(api_key=pinecone_api_key)
+    index = pc.Index(index_name)
+    vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
 
-def get_vectorstore(persist_directory, model="text-embedding-3-small"):
-    """Load a vectorstore from the specified directory."""
+    return vector_store
 
-    return Chroma(persist_directory=persist_directory, embedding_function = OpenAIEmbeddings(model=model))
 
 def create_rag_chain(vectorstore, model="gpt-4o-mini"):
     """Create a RAG (Retrieval-Augmented Generation) chain."""
