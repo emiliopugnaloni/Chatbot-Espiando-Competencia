@@ -1,6 +1,6 @@
 # streamlit run [FILE_NAME] [ARGUMENTS]
 
-from src.rag_chatbot import *
+from .src.rag_chatbot import *
 import streamlit as st
     
 # Load environment variables
