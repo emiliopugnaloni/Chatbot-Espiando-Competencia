@@ -4,14 +4,15 @@ from src.rag_chatbot import *
 import streamlit as st
     
 # Load environment variables
-openai_api_key = load_env_variables(".env")
-os.environ['OPENAI_API_KEY'] = openai_api_key
+openai_api_key, pinecone_api_key = load_env_variables(".env")
+
 
 # Configs
 UPDATE_VECTOR_STORE = False
 PERSIST_DIRECTORY = "./chroma_langchain_db"
 OPEN_AI_MODEL = "gpt-4o-mini"
 OPEN_AI_EMBEDDING_MODEL = "text-embedding-3-small"
+INDEX_NAME = 'chatbot'
 
 if UPDATE_VECTOR_STORE == True:   
 
@@ -24,10 +25,10 @@ if UPDATE_VECTOR_STORE == True:
     docs = docs[3:7]  # Subset for testing
 
     # Build vectorstore
-    vectorstore = build_vectorstore(docs, PERSIST_DIRECTORY, OPEN_AI_EMBEDDING_MODEL)
+    vectorstore = build_vectorstore(docs, INDEX_NAME, pinecone_api_key, OPEN_AI_EMBEDDING_MODEL)
 
 # Load vectorstore
-vectorstore = get_vectorstore(PERSIST_DIRECTORY, OPEN_AI_EMBEDDING_MODEL)
+vectorstore = get_vectorstore(INDEX_NAME, pinecone_api_key, OPEN_AI_EMBEDDING_MODEL)
 
 # Create RAG chain
 rag_chain = create_rag_chain(vectorstore, model = OPEN_AI_MODEL)
