@@ -150,7 +150,8 @@ def create_rag_chain(vectorstore, model="gpt-4o-mini"):
                 "You are an assistant for question-answering tasks. "
                 "Use the following pieces of retrieved context to answer "
                 "the question. If you don't know the answer, say that you "
-                "don't know. Keep the answer concise.\n\n{context}"
+                "don't know, and don't mention that you don't have enough context"
+                "Keep the answer concise.\n\n{context}"
             )),
             MessagesPlaceholder("chat_history"),
             ("human", "{input}"),
