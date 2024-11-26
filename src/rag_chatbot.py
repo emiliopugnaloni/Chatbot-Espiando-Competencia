@@ -123,7 +123,7 @@ def create_rag_chain(vectorstore, model="gpt-4o-mini"):
     llm = ChatOpenAI(model=model)
 
     # Define Retriever
-    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 2})
+    retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k":4})
 
     # Contextualized prompt for rephrasing the question (based on the chat history)
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
