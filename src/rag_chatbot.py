@@ -4,7 +4,6 @@ import shutil
 from dotenv import load_dotenv
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-#from langchain_chroma import Chroma
 from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
@@ -21,10 +20,15 @@ from uuid import uuid4
 
 def load_env_variables(env_file_path):
     """Load environment variables from the specified file."""
+
+    # Load environment variables
     load_dotenv(env_file_path)
+
+    # Set OpenAI key
     openai_api_key = os.getenv("OPENAI_API_KEY")
     os.environ['OPENAI_API_KEY'] = openai_api_key
-
+    
+    # Store Pinecone key
     pinecone_api_key = os.getenv("PINECONE_API_KEY")
     os.environ['PINECONE_API_KEY'] = pinecone_api_key
 
@@ -33,15 +37,20 @@ def load_env_variables(env_file_path):
 
 def download_files_from_google_drive(google_drive_json, destination_folder="tmp"):
     """Download files from Google Drive based on the provided JSON."""
+
+    # Load Google Drive folders path
     with open(google_drive_json, 'r') as f:
         googledrive_folders = json.load(f)
-
+        
+    # Download files for each company
     for company, folder_id in googledrive_folders.items():
         print(f"Downloading files for {company}...")
         download_and_process_folder(folder_id, f"{destination_folder}/{company}")
 
 def collect_downloaded_html_files_path(root_folder):
     """Collect all HTML files recursively from the specified root folder."""
+
+    # List all HTML files
     html_files = []
     for root, _, files in os.walk(root_folder):
         for file in files:
@@ -52,6 +61,8 @@ def collect_downloaded_html_files_path(root_folder):
 
 def load_html_documents(file_paths):
     """Load documents from a list of HTML file paths."""
+
+    # Load documents using Langchain HTML loader
     docs = []
     for file_path in file_paths:
         print(f"Processing {file_path}...")
@@ -59,37 +70,30 @@ def load_html_documents(file_paths):
         docs.extend(loader.load())
     return docs
 
-# def build_vectorstore(docs, persist_directory, model="text-embedding-3-small"):
-#     """Build or load a vectorstore from documents."""
 
-#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True)
-#     all_splits = text_splitter.split_documents(docs)
+def add_docs_to_vectorstore(docs, index_name, pinecone_api_key, model="text-embedding-3-small"):
+    """Add documents to a Pinecone vectorstore."""
 
-#     # Save and load vectorstore
-#     Chroma.from_documents(documents=all_splits, embedding = OpenAIEmbeddings(model=model), persist_directory=persist_directory)
+    # Hasta ahora, esto esta configurado para que incluya todos los documentos. El problema es que
+    # si ya existen documentos, y se meten los mismos, estos se vana duplicar. 
+    # Se podria aregar una fila aca que elimine los documentos existntes (pero para eso se neceista saber los uuids)
+    # O si no, se podria poner otros uuids mas identifciativo del doc, y no meterlo si ya existe
+    # Por el momento, si se neceistan agregar documentos, lo que hice fue borrar el vectorstore y volver a crearlo
+    # desde pinecone
     
-#     # Delete /tmp folder
-#     shutil.rmtree("tmp")
-    
-#     return 
-
-# def get_vectorstore(persist_directory, model="text-embedding-3-small"):
-#     """Load a vectorstore from the specified directory."""
-
-#     return Chroma(persist_directory=persist_directory, embedding_function = OpenAIEmbeddings(model=model))
-
-def build_vectorstore(docs, index_name, pinecone_api_key, model="text-embedding-3-small"):
-    """Build a Pinecone vectorstore from documents."""
-
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, add_start_index=True)
+    # Split documents into chunks
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200, add_start_index=True)
     all_splits = text_splitter.split_documents(docs)
-
-    embedding_model = OpenAIEmbeddings(model=model)
     
+    # Set embeding model
+    embedding_model = OpenAIEmbeddings(model=model)
+
+    # Create Pinecone vectorstore    
     pc = Pinecone(api_key=pinecone_api_key)
     index = pc.Index(index_name)
     vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
-
+    
+    # Add documents to vectorstore
     uuids = [str(uuid4()) for _ in range(len(all_splits))]
     vector_store.add_documents(documents=all_splits, ids=uuids)
 
@@ -100,9 +104,11 @@ def build_vectorstore(docs, index_name, pinecone_api_key, model="text-embedding-
 
 def get_vectorstore(index_name, pinecone_api_key, model="text-embedding-3-small"):
     """Load a Pinecone vectorstore from the specified index name."""
-
-    embedding_model = OpenAIEmbeddings(model=model)
     
+    # Set embeding model
+    embedding_model = OpenAIEmbeddings(model=model)
+
+    # Get Vector Store    
     pc = Pinecone(api_key=pinecone_api_key)
     index = pc.Index(index_name)
     vector_store = PineconeVectorStore(index=index, embedding=embedding_model)
@@ -119,7 +125,7 @@ def create_rag_chain(vectorstore, model="gpt-4o-mini"):
     # Define Retriever
     retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 2})
 
-    # Contextualized prompt for rephrasing the question
+    # Contextualized prompt for rephrasing the question (based on the chat history)
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", (
@@ -133,10 +139,11 @@ def create_rag_chain(vectorstore, model="gpt-4o-mini"):
             ("human", "{input}"),
         ]
     )
-
+    
+    # Retreiver that returns the most similar documents to the "contextualized-question"
     history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
 
-    # QA chain for generating answers
+    # QA prompt for answering the question based on the retrieved context and chat history
     qa_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", (
@@ -149,15 +156,22 @@ def create_rag_chain(vectorstore, model="gpt-4o-mini"):
             ("human", "{input}"),
         ]
     )
+
+    # Chain for answer the question based on the documents
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
 
-    return create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    # Chain that combines the retriver + the question-answer chain    
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
+    return rag_chain
 
 def get_answer_and_update_history(rag_chain, question, chat_history, max_history = 8):
     """Retrieve an answer for a question using the RAG chain."""
-
+    
+    # Get the response, based on the question and chat history
     response = rag_chain.invoke({"input": question, "chat_history": chat_history})
+
+    # Update chat history
     chat_history.extend([
         HumanMessage(content=question),
         AIMessage(content=response["answer"]),
@@ -168,4 +182,3 @@ def get_answer_and_update_history(rag_chain, question, chat_history, max_history
         chat_history[:] = chat_history[-max_history:]  # Keep only the last max_history messages
 
     return response["answer"]
-
