@@ -8,7 +8,7 @@ openai_api_key, pinecone_api_key = load_env_variables(".env")
 
 
 # Configs
-UPDATE_VECTOR_STORE = True
+UPDATE_VECTOR_STORE = False
 PERSIST_DIRECTORY = "./chroma_langchain_db"
 OPEN_AI_MODEL = "gpt-4o-mini"
 OPEN_AI_EMBEDDING_MODEL = "text-embedding-3-small"
