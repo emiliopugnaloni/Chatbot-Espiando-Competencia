@@ -8,7 +8,7 @@ openai_api_key, pinecone_api_key = load_env_variables(".env")
 
 
 # Configs
-UPDATE_VECTOR_STORE = False
+UPDATE_VECTOR_STORE = True
 PERSIST_DIRECTORY = "./chroma_langchain_db"
 OPEN_AI_MODEL = "gpt-4o-mini"
 OPEN_AI_EMBEDDING_MODEL = "text-embedding-3-small"
@@ -22,10 +22,9 @@ if UPDATE_VECTOR_STORE == True:
     # Collect and load HTML files
     html_files = collect_downloaded_html_files_path("tmp/")
     docs = load_html_documents(html_files)
-    docs = docs[3:7]  # Subset for testing
-
-    # Build vectorstore
-    vectorstore = build_vectorstore(docs, INDEX_NAME, pinecone_api_key, OPEN_AI_EMBEDDING_MODEL)
+    
+    # Adds docs to vectorstore
+    vectorstore = add_docs_to_vectorstore(docs, INDEX_NAME, pinecone_api_key, OPEN_AI_EMBEDDING_MODEL)
 
 # Load vectorstore
 vectorstore = get_vectorstore(INDEX_NAME, pinecone_api_key, OPEN_AI_EMBEDDING_MODEL)
