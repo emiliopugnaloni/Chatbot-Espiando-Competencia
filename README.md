@@ -1,11 +1,19 @@
 # Chatabot: Espiando a la Competencia
 
-Chatbot part of the final group project of the Text Minning subject in Data Mining's Master degree in UBA. 
+This repository contains the chatbot developed for the final group project of the Text Mining course in the Data Mining Master's program at UBA.
+Project Overview
 
-The project was about creating a Weekly Review of the competitors of a consulting firm, and also a chatbot where employees can interact to understand the news of the competitors. For this, web scrapping of companies sites, yahoo finance and google news was necesary to obtain the last news. Based on this information, the products were created using GPT LLM.
+The project focused on creating:
 
-For the chatbot part of the project, a Conversational-Rag was created with Lang-Chain, using a Pinecone vector-database. The chabot was published as a StreamLit App: https://textminingchatbot.streamlit.app/
+    A Weekly Review summarizing the activities of competitors for a consulting firm.
+    A chatbot allowing employees to interact and gain insights about competitors' recent news.
 
-This is the structure of the chatbot:
+To achieve this, we performed web scraping on company websites, Yahoo Finance, and Google News to gather the latest information. Leveraging this data, the Weekly Review and chatbot were developed using GPT-based large language models (LLMs).
+Chatbot Details
 
-![imagen](https://github.com/user-attachments/assets/30786f1b-0e4e-439f-8015-1159be260d05)
+The chatbot was implemented as a Conversational-RAG (Retrieval-Augmented Generation) using:
+
+    LangChain for conversational capabilities.
+    Pinecone as the vector database for document retrieval.
+
+The chatbot is hosted as a Streamlit app, accessible at: textminingchatbot.streamlit.app.
