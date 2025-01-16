@@ -1,7 +1,8 @@
 # Chatabot: Espiando a la Competencia
 
 This repository contains the chatbot developed for the final group project of the Text Mining course in the Data Mining Master's program at UBA.
-Project Overview
+
+**Project Overview**
 
 The project focused on creating:
 
@@ -9,7 +10,8 @@ The project focused on creating:
 * A chatbot allowing employees to interact and gain insights about competitors' recent news.
 
 To achieve this, we performed web scraping on company websites, Yahoo Finance, and Google News to gather the latest information. Leveraging this data, the Weekly Review and chatbot were developed using GPT-based large language models (LLMs).
-Chatbot Details
+
+**Chatbot Details**
 
 The chatbot was implemented as a Conversational-RAG (Retrieval-Augmented Generation) using:
 
