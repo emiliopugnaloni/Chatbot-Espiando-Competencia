@@ -16,4 +16,6 @@ The chatbot was implemented as a Conversational-RAG (Retrieval-Augmented Generat
 * LangChain for conversational capabilities.
 * Pinecone as the vector database for document retrieval.
 
+![imagen](https://github.com/user-attachments/assets/663ad1f3-1a45-41d7-85b9-cbabdd0113cb)
+
 The chatbot is hosted as a Streamlit app, accessible at: textminingchatbot.streamlit.app.
